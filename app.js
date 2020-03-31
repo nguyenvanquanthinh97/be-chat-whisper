@@ -23,10 +23,6 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoute);
 
-app.use('/test', (req, res, next) => {
-  next();
-})
-
 app.use((error, req, res, next) => {
   const message = get(error, 'message');
   const statusCode = get(error, 'statusCode') || 500;
