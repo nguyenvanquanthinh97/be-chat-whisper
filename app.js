@@ -21,9 +21,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/', (res, res, next) => {
-  res.send("<h1>Hello</h1>");
-});
 app.use('/auth', authRoute);
 
 app.use((error, req, res, next) => {
