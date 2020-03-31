@@ -21,7 +21,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 app.use('/auth', authRoute);
 
 app.use((error, req, res, next) => {
