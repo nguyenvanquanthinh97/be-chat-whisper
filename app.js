@@ -23,6 +23,10 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoute);
 
+app.use('/test', (req, res, next) => {
+  next();
+})
+
 app.use((error, req, res, next) => {
   const message = get(error, 'message');
   const statusCode = get(error, 'statusCode') || 500;
@@ -33,5 +37,6 @@ mongoose.connect(process.env.MONGODB_SERVER, () => {
   const server = app.listen(port);
   const io = socketio(server);
 
+  //every connect to io will be execute in main socket io functions
   mainSocket(io);
 });
