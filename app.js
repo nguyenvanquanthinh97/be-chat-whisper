@@ -21,6 +21,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/', (req, res, next) => {
+  res.sendStatus(200);
+})
+
 app.use('/auth', authRoute);
 
 app.use((error, req, res, next) => {
