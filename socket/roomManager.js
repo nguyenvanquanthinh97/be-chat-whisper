@@ -1,4 +1,5 @@
 const { get } = require('lodash');
+const moment = require('moment-timezone');
 
 const User = require('../model/user');
 const Room = require('../model/room');
@@ -16,10 +17,9 @@ const fetchRooms = async (companyId, userId, email, username) => {
         lastActive: moment()
       });
       await userActivity.save();
-      rooms = await createRoomForNewUser(companyId, userId, email, username);
-      return rooms;
+      await createRoomForNewUser(companyId, userId, email, username);
     }
-    rooms = await Room.find({ companyId: companyId, "clients.userId": userId }, { name: 1, clients: 1, messages: { $slice: [0, 10] } });
+    rooms = await Room.find({ companyId: companyId, "clients.userId": userId }, { name: 1, clients: 1, messages: 1 });
     return rooms;
   }
   catch (error) {
@@ -30,6 +30,13 @@ const fetchRooms = async (companyId, userId, email, username) => {
 const createRoomForNewUser = async (companyId, userId, emailUser, username) => {
   try {
     let users = await User.find({ companyId: companyId }, { _id: 1, email: 1, username: 1 });
+    const existedRooms = await Room.find({ companyId: companyId, "clients.userId": userId }, { name: 1, clients: 1 });
+    const alreadyConnectedUser = existedRooms.map(room => {
+      return room.name.split('|').find(email => email !== emailUser);
+    });
+
+    users = users.filter(user => alreadyConnectedUser.every(otherUserEmail => otherUserEmail !== user.email));
+
     const rooms = [];
     users.forEach((user) => {
       rooms.push({

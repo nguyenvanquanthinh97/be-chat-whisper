@@ -38,14 +38,14 @@ module.exports.login = async (req, res, next) => {
     }
     const token = 'Bearer ' + jwt.sign({ email: email, userId: user._id, username: user.username, companyId: get(user, 'companyId') }, process.env.JWT_SECRET);
 
-    res.status(200).json({ message: "Log in success", token, userId: user._id.toString(), username: user.username, companyId: get(user, 'companyId') });
+    res.status(200).json({ message: "Log in success", token, userId: user._id.toString(), username: user.username, email: email, companyId: get(user, 'companyId') });
   } catch (error) {
     next(error);
   }
 };
 
 module.exports.logout = async (req, res, next) => {
-  const blackToken = new BlackList({jwt: get(req, 'token')});
+  const blackToken = new BlackList({ jwt: get(req, 'token') });
   try {
     await blackToken.save();
     res.status(200).json({ message: "Logout Success" });

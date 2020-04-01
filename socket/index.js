@@ -1,4 +1,4 @@
-const { get } = require('lodash');
+const { get, set } = require('lodash');
 const jwt = require('jsonwebtoken');
 const moment = require('moment-timezone');
 
@@ -9,6 +9,8 @@ const User = require('../model/user');
 const Company = require('../model/company');
 const Room = require('../model/room');
 const UserActivity = require('../model/user-activity');
+
+const userWithSocket = {};
 
 module.exports.mainSocket = async (io) => {
   try {
@@ -40,17 +42,62 @@ module.exports.mainSocket = async (io) => {
         socket.email = get(decoded, 'email');
         return next();
       }).on('connect', async (socket) => {
-        console.log(socket.id + " has connected to Server");
-
         const companyId = get(socket, 'companyId');
         const userId = get(socket, 'userId');
         const username = get(socket, 'username');
         const email = get(socket, 'email');
 
-        socket.emit("roomList", await fetchRooms(companyId, userId, email, username));
+        socket.on('login', async () => {
+          if (get(userWithSocket, userId, '') === '') {
+            set(userWithSocket, userId, []);
+          }
+          userWithSocket[userId].push(socket.id);
+          const userActivity = await UserActivity.findOne({ userId: userId });
+          userActivity.isOnline = true;
+          userActivity.lastActive = moment();
+          await userActivity.save();
+          io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: true });
+        });
+
+        socket.on('disconnect', async () => {
+          userWithSocket[userId] = get(userWithSocket, userId, []).filter(socketId => socketId !== socket.id);
+          if (userWithSocket[userId].length === 0) {
+            const userActivity = await UserActivity.findOne({ userId: userId });
+            userActivity.isOnline = false;
+            userActivity.lastActive = moment();
+            await userActivity.save();
+            io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: false });
+          }
+        });
+
+        socket.on("joinCompanyChat", async (callback) => {
+          const rooms = await fetchRooms(companyId, userId, email, username);
+          const userActivities = await UserActivity.find({ companyId: companyId }, { userId: 1, isOnline: 1, lastActive: 1 });
+          rooms.forEach(room => {
+            socket.join(get(room, 'id'));
+          });
+          callback(rooms, userActivities);
+        });
+
+        socket.on("messageFromClient", async (message, roomId) => {
+          if (get(message, 'content') === '') {
+            return;
+          }
+          const room = await Room.findById(roomId);
+          const formatMessage = {
+            senderId: userId,
+            content: get(message, 'content'),
+            contentType: get(message, 'contentType'),
+            createdAt: moment()
+          };
+          room.messages.push(formatMessage);
+          await room.save();
+          socket.to(roomId).emit("messageFromServer", message, roomId);
+        });
       });
     });
   } catch (error) {
     socket.on('error', error);
+    socket.disconnect();
   }
 };
