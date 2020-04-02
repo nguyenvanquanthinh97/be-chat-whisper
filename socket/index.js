@@ -52,47 +52,79 @@ module.exports.mainSocket = async (io) => {
             set(userWithSocket, userId, []);
           }
           userWithSocket[userId].push(socket.id);
-          const userActivity = await UserActivity.findOne({ userId: userId });
-          userActivity.isOnline = true;
-          userActivity.lastActive = moment();
-          await userActivity.save();
-          io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: true });
+          try {
+            const userActivity = await UserActivity.findOne({ userId: userId });
+            if (userActivity) {
+              userActivity.isOnline = true;
+              userActivity.lastActive = moment();
+              await userActivity.save();
+            }
+            io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: true });
+          } catch (error) {
+            socket.emit("error", error);
+          }
         });
 
         socket.on('disconnect', async () => {
-          userWithSocket[userId] = get(userWithSocket, userId, []).filter(socketId => socketId !== socket.id);
-          if (userWithSocket[userId].length === 0) {
-            const userActivity = await UserActivity.findOne({ userId: userId });
-            userActivity.isOnline = false;
-            userActivity.lastActive = moment();
-            await userActivity.save();
-            io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: false });
+          try {
+            userWithSocket[userId] = get(userWithSocket, userId, []).filter(socketId => socketId !== socket.id);
+            if (userWithSocket[userId].length === 0) {
+              const userActivity = await UserActivity.findOne({ userId: userId });
+              userActivity.isOnline = false;
+              userActivity.lastActive = moment();
+              await userActivity.save();
+              io.of(`/${companyId}`).emit('userActivityList', { userId, isOnline: false, lastActiviy: moment() });
+            }
+          } catch (error) {
+            socket.emit("error", error);
           }
         });
 
         socket.on("joinCompanyChat", async (callback) => {
-          const rooms = await fetchRooms(companyId, userId, email, username);
-          const userActivities = await UserActivity.find({ companyId: companyId }, { userId: 1, isOnline: 1, lastActive: 1 });
-          rooms.forEach(room => {
-            socket.join(get(room, 'id'));
-          });
-          callback(rooms, userActivities);
+          try {
+            const rooms = await fetchRooms(companyId, userId, email, username);
+            const userActivities = await UserActivity.find({ companyId: companyId }, { userId: 1, isOnline: 1, lastActive: 1 });
+            rooms.forEach(room => {
+              socket.join(get(room, 'id'));
+            });
+            callback(rooms, userActivities);
+          } catch (error) {
+            socket.emit("error", error);
+          }
         });
 
         socket.on("messageFromClient", async (message, roomId) => {
-          if (get(message, 'content') === '') {
-            return;
+          try {
+            if (get(message, 'content') === '') {
+              return;
+            }
+            const room = await Room.findById(roomId);
+            const formatMessage = {
+              senderId: userId,
+              content: get(message, 'content'),
+              contentType: get(message, 'contentType'),
+              createdAt: moment()
+            };
+            room.messages.push(formatMessage);
+
+            const receiveUnread = room.unread.find(item => item.userId.toString() !== userId);
+            receiveUnread.total += 1;
+            await room.save();
+            socket.to(roomId).emit("messageFromServer", message, roomId, receiveUnread.total);
+          } catch (error) {
+            socket.emit("error", error);
           }
-          const room = await Room.findById(roomId);
-          const formatMessage = {
-            senderId: userId,
-            content: get(message, 'content'),
-            contentType: get(message, 'contentType'),
-            createdAt: moment()
-          };
-          room.messages.push(formatMessage);
-          await room.save();
-          socket.to(roomId).emit("messageFromServer", message, roomId);
+        });
+
+        socket.on("readMessagesFromRoom", async (roomId) => {
+          try {
+            const room = await Room.findById(roomId);
+            const userUnread = room.unread.find(item => item.userId.toString() === userId);
+            userUnread.total = 0;
+            await room.save();
+          } catch (error) {
+            socket.emit("error", error);
+          }
         });
       });
     });

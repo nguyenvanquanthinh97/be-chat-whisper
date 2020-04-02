@@ -23,8 +23,20 @@ const roomSchema = new Schema({
         senderId: Schema.Types.ObjectId,
         content: String,
         contentType: String,
-      },
-        { timestamp: { createdAt: 'created_at' } })
+        createdAt: Date
+      })
+    }
+  ],
+  unread: [
+    {
+      type: mongoose.Schema({
+        _id: false,
+        userId: Schema.Types.ObjectId,
+        total: {
+          type: Number,
+          default: 0
+        }
+      })
     }
   ]
 });

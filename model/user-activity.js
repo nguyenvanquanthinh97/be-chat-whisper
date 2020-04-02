@@ -4,7 +4,10 @@ const Schema = mongoose.Schema;
 const userActivitySchema = new Schema({
   companyId: Schema.Types.ObjectId,
   userId: Schema.Types.ObjectId,
-  isOnline: Boolean,
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
   lastActive: Date
 }, { collection: 'userActivities' });
 

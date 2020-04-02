@@ -19,7 +19,7 @@ const fetchRooms = async (companyId, userId, email, username) => {
       await userActivity.save();
       await createRoomForNewUser(companyId, userId, email, username);
     }
-    rooms = await Room.find({ companyId: companyId, "clients.userId": userId }, { name: 1, clients: 1, messages: 1 });
+    rooms = await Room.find({ companyId: companyId, "clients.userId": userId }, { name: 1, clients: 1, messages: 1, unread: 1 });
     return rooms;
   }
   catch (error) {
@@ -52,7 +52,17 @@ const createRoomForNewUser = async (companyId, userId, emailUser, username) => {
             username: get(user, 'username')
           }
         ],
-        messages: []
+        messages: [],
+        unread: [
+          {
+            userId: userId,
+            total: 0
+          },
+          {
+            userId: get(user, '_id'),
+            total: 0
+          }
+        ]
       });
     });
 
