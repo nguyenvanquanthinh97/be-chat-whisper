@@ -1,5 +1,6 @@
 const cloudinary = require('cloudinary').v2;
 const dotenv = require('dotenv');
+const uuid = require('uuid');
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ module.exports.uploads = (file, fileName, folder) => {
     cloudinary.uploader.upload(file, {
       resource_type: "auto",
       folder: folder,
-      public_id: fileName
+      public_id: `${fileName}-${uuid()}`
     }, (error, result) => {
       resolve({
         url: result.url
