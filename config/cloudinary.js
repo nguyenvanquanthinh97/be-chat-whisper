@@ -29,7 +29,7 @@ module.exports.uploads = (file, fileName, folder) => {
     cloudinary.uploader.upload(file, {
       resource_type: "auto",
       folder: folder,
-      public_id: `${uuid()}_${fileName}`
+      public_id: fileName
     }, (error, result) => {
       resolve({
         url: result.url
