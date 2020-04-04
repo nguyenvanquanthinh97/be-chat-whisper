@@ -9,6 +9,7 @@ const User = require('../model/user');
 const Company = require('../model/company');
 const Room = require('../model/room');
 const UserActivity = require('../model/user-activity');
+const cloudinary = require('../config/cloudinary');
 
 const userWithSocket = {};
 
@@ -95,14 +96,43 @@ module.exports.mainSocket = async (io) => {
 
         socket.on("messageFromClient", async (message, roomId) => {
           try {
-            if (get(message, 'content') === '') {
+            const messageType = get(message, 'contentType', 'text');
+
+            const fileTypes = ['image', 'file'];
+
+            if (get(message, 'content') === '' && !fileTypes.includes(messageType)) {
               return;
             }
+
             const room = await Room.findById(roomId);
+
+            if (fileTypes.includes(messageType)) {
+              let file = get(message, 'file');
+              const fileName = get(message, 'fileName');
+              const result = await cloudinary.uploads(file, fileName, 'conversation');
+              const formatImageMessage = {
+                senderId: userId,
+                content: get(result, 'url'),
+                contentType: messageType,
+                createdAt: moment()
+              };
+              room.messages.push(formatImageMessage);
+
+              const receiveUnread = room.unread.find(item => item.userId.toString() !== userId);
+              receiveUnread.total += 1;
+              await room.save();
+              const clientFormatMessage = { ...formatImageMessage, username: get(message, 'username'), avatar: get(message, 'avatar') };
+              io.of(`/${companyId}`).to(roomId).emit("messageFromServer", clientFormatMessage, roomId, receiveUnread.total);
+            }
+
+            if (get(message, 'content', '') === '') {
+              return;
+            }
+
             const formatMessage = {
               senderId: userId,
               content: get(message, 'content'),
-              contentType: get(message, 'contentType'),
+              contentType: 'text',
               createdAt: moment()
             };
             room.messages.push(formatMessage);
