@@ -140,7 +140,16 @@ module.exports.mainSocket = async (io) => {
             const receiveUnread = room.unread.find(item => item.userId.toString() !== userId);
             receiveUnread.total += 1;
             await room.save();
-            socket.to(roomId).emit("messageFromServer", message, roomId, receiveUnread.total);
+            if(messageType !== 'text') {
+              const formatTextMessage = {
+                ...formatMessage,
+                username: get(message, 'username'), 
+                avatar: get(message, 'avatar'),
+                contentType: 'text'
+              }
+              socket.to(roomId).emit("messageFromServer", formatTextMessage, roomId, receiveUnread.total);
+            } 
+            
           } catch (error) {
             socket.emit("error", error);
           }

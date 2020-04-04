@@ -24,15 +24,16 @@ cloudinary.config({
 // };
 
 module.exports.uploads = (file, fileName, folder) => {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     cloudinary.uploader.upload(file, {
-      resource_type: "raw",
+      resource_type: "auto",
       folder: folder,
       public_id: fileName
     }, (error, result) => {
       resolve({
         url: result.url
       });
+      reject(error);
     });
   });
 };
