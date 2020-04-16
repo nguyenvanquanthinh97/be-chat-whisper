@@ -148,8 +148,9 @@ module.exports.mainSocket = async (io) => {
                 contentType: 'text'
               }
               socket.to(roomId).emit("messageFromServer", formatTextMessage, roomId, receiveUnread.total);
+              return;
             } 
-            
+            socket.to(roomId).emit("messageFromServer", formatMessage, roomId, receiveUnread.total);
           } catch (error) {
             socket.emit("error", error);
           }
