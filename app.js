@@ -23,6 +23,10 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoute);
 
+app.get('/', (req, res, next) => {
+  res.send('Chat-app-be');
+});
+
 app.use((error, req, res, next) => {
   const message = get(error, 'message');
   const statusCode = get(error, 'statusCode') || 500;
