@@ -38,7 +38,7 @@ module.exports.login = async (req, res, next) => {
     }
     const token = 'Bearer ' + jwt.sign({ email: email, userId: user._id, username: user.username, companyId: get(user, 'companyId') }, process.env.JWT_SECRET);
 
-    res.status(200).json({ message: "Log in success", token, userId: user._id.toString(), username: user.username, email: email, companyId: get(user, 'companyId') });
+    res.status(200).json({ message: "Log in success", token, userId: user._id.toString(), username: user.username, email: email, companyId: get(user, 'companyId'),img: get(user._doc, 'img') });
   } catch (error) {
     next(error);
   }
