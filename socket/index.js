@@ -1,6 +1,7 @@
 const { get, set } = require('lodash');
 const jwt = require('jsonwebtoken');
 const moment = require('moment-timezone');
+const mongoose = require('mongoose');
 
 const { convertFromObjectIdToTimestamp } = require('../utils/convertTimestamp');
 const { fetchRooms } = require('./roomManager');
@@ -84,7 +85,29 @@ module.exports.mainSocket = async (io) => {
         socket.on("joinCompanyChat", async (callback) => {
           try {
             const rooms = await fetchRooms(companyId, userId, email, username);
-            const userActivities = await UserActivity.find({ companyId: companyId }, { userId: 1, isOnline: 1, lastActive: 1 });
+            // const userActivities = await UserActivity.find({ companyId: companyId }, { userId: 1, isOnline: 1, lastActive: 1 });
+            const userActivities = await UserActivity.aggregate([
+              {
+                $match: { companyId: mongoose.Types.ObjectId(companyId) }
+              },
+              {
+                $lookup: {
+                  from: User.collection.name,
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'userInfo'
+                }
+              },
+              {
+                $project: {
+                  userId: 1,
+                  isOnline: 1,
+                  lastActive: 1,
+                  avatar: '$userInfo.img'
+                }
+              }
+            ]);
+
             rooms.forEach(room => {
               socket.join(get(room, 'id'));
             });
@@ -140,16 +163,16 @@ module.exports.mainSocket = async (io) => {
             const receiveUnread = room.unread.find(item => item.userId.toString() !== userId);
             receiveUnread.total += 1;
             await room.save();
-            if(messageType !== 'text') {
+            if (messageType !== 'text') {
               const formatTextMessage = {
                 ...formatMessage,
-                username: get(message, 'username'), 
+                username: get(message, 'username'),
                 avatar: get(message, 'avatar'),
                 contentType: 'text'
-              }
+              };
               socket.to(roomId).emit("messageFromServer", formatTextMessage, roomId, receiveUnread.total);
               return;
-            } 
+            }
             socket.to(roomId).emit("messageFromServer", formatMessage, roomId, receiveUnread.total);
           } catch (error) {
             socket.emit("error", error);
