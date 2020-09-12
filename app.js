@@ -8,6 +8,7 @@ const socketio = require('socket.io');
 
 const authRoute = require('./routes/auth');
 const userRoute = require('./routes/user');
+const uploadRoute = require('./routes/uploadRoute');
 const { mainSocket } = require('./socket');
 
 const port = process.env.PORT || 8000;
@@ -24,6 +25,7 @@ app.use((req, res, next) => {
 
 app.use('/auth', authRoute);
 app.use('/user', userRoute);
+app.use('/api', uploadRoute);
 
 app.get('/', (req, res, next) => {
   res.send('Chat-app-be');
