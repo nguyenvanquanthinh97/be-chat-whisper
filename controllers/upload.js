@@ -17,7 +17,8 @@ module.exports = (req, res) => {
 		{
 			Bucket: 's3-my-blog-bucket-220597',
 			Key: filename,
-			ContentType: filetype
+			ContentType: filetype,
+			Expires: 3600
 		},
 		(error, url) => {
 			if (error) {
