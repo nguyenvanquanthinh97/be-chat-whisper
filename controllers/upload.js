@@ -15,7 +15,7 @@ module.exports = (req, res) => {
 	S3.getSignedUrl(
 		'putObject',
 		{
-			Bucket: 's3-my-blog-bucket-220597',
+			Bucket: process.env.bucket,
 			Key: filename,
 			ContentType: filetype,
 			Expires: 3600
